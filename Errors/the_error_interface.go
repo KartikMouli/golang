@@ -44,3 +44,110 @@ If both messages are sent successfully, return the total cost of the messages ad
 When you return a non-nil error in Go, it's conventional to return the "zero" values of all other return values.
 
 */
+
+package main
+
+import (
+	"fmt"
+	"testing"
+)
+
+func sendSMSToCouple(msgToCustomer, msgToSpouse string) (int, error) {
+	// ?
+	toCustomerCost, error := sendSMS(msgToCustomer)
+	if error != nil {
+		return 0, error
+	}
+
+	toSpouseCost, error := sendSMS(msgToSpouse)
+	if error != nil {
+		return 0, error
+	}
+
+	return toCustomerCost + toSpouseCost, nil
+
+}
+
+// don't edit below this line
+
+func sendSMS(message string) (int, error) {
+	const maxTextLen = 25
+	const costPerChar = 2
+	if len(message) > maxTextLen {
+		return 0, fmt.Errorf("can't send texts over %v characters", maxTextLen)
+	}
+	return costPerChar * len(message), nil
+}
+
+func Test(t *testing.T) {
+	type testCase struct {
+		msgToCustomer string
+		msgToSpouse   string
+		expectedCost  int
+		expectedErr   error
+	}
+
+	runCases := []testCase{
+		{"Thanks for coming in to our flower shop today!", "We hope you enjoyed your gift.", 0, fmt.Errorf("can't send texts over 25 characters")},
+		{"Thanks for joining us!", "Have a good day.", 76, nil},
+	}
+
+	submitCases := append(runCases, []testCase{
+		{"Thank you.", "Enjoy!", 32, nil},
+		{"We loved having you in!", "We hope the rest of your evening is fantastic.", 0, fmt.Errorf("can't send texts over 25 characters")},
+	}...)
+
+	testCases := runCases
+	if withSubmit {
+		testCases = submitCases
+	}
+
+	skipped := len(submitCases) - len(testCases)
+	passCount := 0
+	failCount := 0
+
+	for _, test := range testCases {
+		cost, err := sendSMSToCouple(test.msgToCustomer, test.msgToSpouse)
+		errString := ""
+		if err != nil {
+			errString = err.Error()
+		}
+		expectedErrString := ""
+		if test.expectedErr != nil {
+			expectedErrString = test.expectedErr.Error()
+		}
+		if cost != test.expectedCost || errString != expectedErrString {
+			failCount++
+			t.Errorf(`---------------------------------
+Inputs:     (%v, %v)
+Expecting:  (%v, %v)
+Actual:     (%v, %v)
+Fail
+`, test.msgToCustomer, test.msgToSpouse, test.expectedCost, test.expectedErr, cost, err)
+		} else {
+			passCount++
+			fmt.Printf(`---------------------------------
+Inputs:     (%v, %v)
+Expecting:  (%v, %v)
+Actual:     (%v, %v)
+Pass
+`, test.msgToCustomer, test.msgToSpouse, test.expectedCost, test.expectedErr, cost, err)
+		}
+	}
+
+	fmt.Println("---------------------------------")
+	if skipped > 0 {
+		fmt.Printf("%d passed, %d failed, %d skipped\n", passCount, failCount, skipped)
+	} else {
+		fmt.Printf("%d passed, %d failed\n", passCount, failCount)
+	}
+}
+
+// withSubmit is set at compile time depending
+// on which button is used to run the tests
+var withSubmit = true
+
+func main() {
+	tests := &testing.T{}
+	Test(tests)
+}
